@@ -1,0 +1,47 @@
+---
+- name: Manage GNS3 devices
+  hosts: gns3-ios
+  gather_facts: false
+  connection: local
+
+
+  tasks:
+    - name: CREATE ACL
+      ios_config:
+        authorize: yes
+        parents: ip access-list standard VTY_ACCESS
+        lines:
+          - remark TO RESTRICT VTY ACCESS
+          - permit 162.116.0.0 0.0.255.255
+          - permit 10.0.0.0 0.255.255.255
+        match: exact
+      
+
+    - name: APPLY ACL
+      ios_config:
+        authorize: yes
+        lines:
+        - access-class VTY_ACCESS in vrf-also
+        - session-timeout 30 
+        - exec-timeout 30 0
+        - logging synchronous
+        - transport input ssh
+
+        parents: line vty 0 15    
+      
+    - name: VERIFY ACL CONFIG
+      ios_command:
+        commands:
+          - show ip access-list
+      register: acl
+
+    - debug: var=acl.stdout_lines
+
+
+    - name: VERIFY LINE VTY CONFIG
+      ios_command:
+        commands:
+        - show run | sec line vty
+      register: vty
+
+    - debug: var=vty.stdout_lines
