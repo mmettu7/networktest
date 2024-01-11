@@ -1,0 +1,39 @@
+---
+- name: Create Netscaler VIP
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Set Netscaler credentials
+      set_fact:
+        ns_username: "your_username"
+        ns_password: "your_password"
+        ns_host: "netscaler_hostname_or_ip"
+        ns_vserver_name: "your_vserver_name"
+        ns_vserver_ip: "VIP_IP_address"
+        ns_vserver_port: "VIP_port"
+        ns_vserver_protocol: "TCP/HTTP/HTTPS"  # Choose the appropriate protocol
+
+    - name: Create Netscaler VIP
+      uri:
+        url: "http://{{ ns_host }}/nitro/v1/config/lbvserver"
+        method: POST
+        body_format: json
+        body: |
+          {
+            "lbvserver": {
+              "name": "{{ ns_vserver_name }}",
+              "ipv46": "{{ ns_vserver_ip }}",
+              "port": "{{ ns_vserver_port }}",
+              "servicetype": "{{ ns_vserver_protocol }}"
+            }
+          }
+        headers:
+          "Content-Type": "application/json"
+        status_code: 201
+        user: "{{ ns_username }}"
+        password: "{{ ns_password }}"
+      register: result
+
+    - name: Check the result
+      debug:
+        var: result
