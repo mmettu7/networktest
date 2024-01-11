@@ -1,0 +1,34 @@
+---
+- name: Remove Netscaler VIPs
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Set Netscaler credentials
+      set_fact:
+        ns_username: "your_username"
+        ns_password: "your_password"
+        ns_host: "netscaler_hostname_or_ip"
+
+    - name: Define list of VIPs to remove
+      set_fact:
+        vips_to_remove:
+          - name: "vip1"
+          - name: "vip2"
+          - name: "vip3"
+          # Add more VIPs as needed
+
+    - name: Remove Netscaler VIPs
+      loop: "{{ vips_to_remove }}"
+      uri:
+        url: "http://{{ ns_host }}/nitro/v1/config/lbvserver/{{ item.name }}"
+        method: DELETE
+        headers:
+          "Content-Type": "application/json"
+        status_code: 200
+        user: "{{ ns_username }}"
+        password: "{{ ns_password }}"
+      register: result
+
+    - name: Check the result
+      debug:
+        var: result
