@@ -1,0 +1,17 @@
+---
+- hosts: netscaler_group
+  gather_facts: yes
+  roles:
+    - role: citrix.netscaler
+      vars:
+        nitro_user: "ns_username"
+        nitro_pass: "ns_password"
+        lbvserver_name: "my_lb_vserver"
+        lbvserver_ip: "10.0.0.1"
+        lbvserver_port: 80
+        service_name: "my_service"
+        service_port: 8080
+        # Define backend servers
+        servers:
+          - ip: "192.168.1.10"
+          - ip: "192.168.1.20"
