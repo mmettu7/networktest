@@ -1,0 +1,28 @@
+---
+- name: Check if LBVserver is bound to CSV server using NITRO API
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Set Netscaler credentials
+      set_fact:
+        ns_username: "your_username"
+        ns_password: "your_password"
+        ns_host: "netscaler_hostname_or_ip"
+
+    - name: Define LBVserver details
+      set_fact:
+        lbvserver_name: "your_lbvserver_name"
+
+    - name: Get LBVserver information
+      uri:
+        url: "http://{{ ns_host }}/nitro/v1/config/lbvserver/{{ lbvserver_name }}"
+        method: GET
+        headers:
+          "Content-Type": "application/json"
+        user: "{{ ns_username }}"
+        password: "{{ ns_password }}"
+      register: lbvserver_info
+
+    - name: Check if LBVserver is bound to CSV server
+      debug:
+        msg: "LBVserver {{ lbvserver_name }} is {% if lbvserver_info.json.lbvserver.bindpoint | default([]) | map(attribute='lbvserver') | list %}bound{% else %}not bound{% endif %} to a CSV server"
