@@ -1,0 +1,144 @@
+---
+- name: Configure Netscaler Resources
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    netscaler_url: "http://your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+
+    netscaler_csvservers:
+      - name: "csv_server1"
+        ip: "192.168.1.1"
+        port: "80"
+      - name: "csv_server2"
+        ip: "192.168.1.2"
+        port: "443"
+
+    netscaler_lbvservers:
+      - name: "lb_vserver1"
+        ip: "192.168.1.3"
+        port: "8080"
+      - name: "lb_vserver2"
+        ip: "192.168.1.4"
+        port: "8443"
+
+    netscaler_servicegroups:
+      - name: "servicegroup1"
+        members:
+          - ip: "10.0.0.1"
+            port: "80"
+          - ip: "10.0.0.2"
+            port: "80"
+      - name: "servicegroup2"
+        members:
+          - ip: "10.0.0.3"
+            port: "443"
+          - ip: "10.0.0.4"
+            port: "443"
+
+    netscaler_servers:
+      - name: "server1"
+        ip: "10.0.0.1"
+      - name: "server2"
+        ip: "10.0.0.2"
+      - name: "server3"
+        ip: "10.0.0.3"
+      - name: "server4"
+        ip: "10.0.0.4"
+
+  tasks:
+    - name: Create CSV Servers
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: csvserver
+        operation: add
+        data:
+          name: "{{ item.name }}"
+          ipv46: "{{ item.ip }}"
+          port: "{{ item.port }}"
+      loop: "{{ netscaler_csvservers }}"
+      loop_control:
+        loop_var: item
+
+    - name: Create LBVservers
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: lbvserver
+        operation: add
+        data:
+          name: "{{ item.name }}"
+          ipv46: "{{ item.ip }}"
+          port: "{{ item.port }}"
+          servicetype: HTTP
+      loop: "{{ netscaler_lbvservers }}"
+      loop_control:
+        loop_var: item
+
+    - name: Create ServiceGroups
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: servicegroup
+        operation: add
+        data:
+          servicegroupname: "{{ item.name }}"
+          servicetype: HTTP
+          servername: "{{ netscaler_servers[0].name }}"  # Use the first server initially
+      loop: "{{ netscaler_servicegroups }}"
+      loop_control:
+        loop_var: item
+
+    - name: Add servers to ServiceGroups
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: servicegroup_servicegroupmember_binding
+        operation: add
+        data:
+          servicegroupname: "{{ item.name }}"
+          ip: "{{ server.ip }}"
+          port: "{{ server.port }}"
+      loop: "{{ netscaler_servicegroups }}"
+      loop_control:
+        loop_var: item
+      with_items: "{{ netscaler_servers }}"
+      when: item != netscaler_servicegroups[0]  # Skip the first loop iteration for initial server binding
+
+    - name: Bind CSV Servers to LBVservers
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: lbvserver_csvserver_binding
+        operation: add
+        data:
+          vservername: "{{ item.name }}"
+          servicetype: HTTP
+          ipaddress: "{{ item.ip }}"
+          port: "{{ item.port }}"
+      loop: "{{ netscaler_lbvservers }}"
+      loop_control:
+        loop_var: item
+
+    - name: Bind ServiceGroups to LBVservers
+      community.general.netscaler:
+        host: "{{ netscaler_url }}"
+        username: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        object: lbvserver_servicegroup_binding
+        operation: add
+        data:
+          vservername: "{{ item.name }}"
+          servicetype: HTTP
+          servicegroupname: "{{ item.name }}"
+      loop: "{{ netscaler_lbvservers }}"
+      loop_control:
+        loop_var: item
