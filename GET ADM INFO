@@ -1,0 +1,45 @@
+---
+- name: Get Down LBVserver Information from Citrix ADM and Save as CSV
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get ADM Session Token
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/config/login"
+        method: POST
+        body: "{'login':{'username':'{{ adm_username }}','password':'{{ adm_password }}'}}"
+        status_code: 201
+        validate_certs: no
+        headers:
+          Content-Type: "application/json"
+      register: adm_login
+
+    - name: Get LBVserver Information
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/stat/lbvserver"
+        method: GET
+        headers:
+          Accept: "application/json"
+          Cookie: "{{ adm_login.cookies['NITRO_AUTH_TOKEN'] }}"
+        validate_certs: no
+      register: lbvserver_info
+
+    - name: Filter Down LBVservers
+      set_fact:
+        down_lbvservers: "{{ lbvserver_info.json.lbvserver | selectattr('vsvrstate', 'equalto', 'DOWN') | list }}"
+
+    - name: Save Down LBVservers as CSV
+      community.general.csv_content:
+        path: "down_lbvservers.csv"
+        content: "{{ down_lbvservers }}"
+      when: down_lbvservers | length > 0  # Save only if there are Down LBVservers
+
+    - name: Logout from ADM
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/config/logout"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Cookie: "{{ adm_login.cookies['NITRO_AUTH_TOKEN'] }}"
+        validate_certs: no
