@@ -1,0 +1,59 @@
+---
+- name: Get Down LBVserver Information and Bindings from Citrix ADM and Save as CSV
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get ADM Session Token
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/config/login"
+        method: POST
+        body: "{'login':{'username':'{{ adm_username }}','password':'{{ adm_password }}'}}"
+        status_code: 201
+        validate_certs: no
+        headers:
+          Content-Type: "application/json"
+      register: adm_login
+
+    - name: Get LBVserver Information
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/stat/lbvserver"
+        method: GET
+        headers:
+          Accept: "application/json"
+          Cookie: "{{ adm_login.cookies['NITRO_AUTH_TOKEN'] }}"
+        validate_certs: no
+      register: lbvserver_info
+
+    - name: Filter Down LBVservers
+      set_fact:
+        down_lbvservers: "{{ lbvserver_info.json.lbvserver | selectattr('vsvrstate', 'equalto', 'DOWN') | list }}"
+
+    - name: Get CSV Server Bindings
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/stat/lbvserver_csvserver_binding"
+        method: GET
+        headers:
+          Accept: "application/json"
+          Cookie: "{{ adm_login.cookies['NITRO_AUTH_TOKEN'] }}"
+        validate_certs: no
+      register: csvserver_bindings
+
+    - name: Filter Down LBVservers Bound to CSV Servers
+      set_fact:
+        down_lbvservers_bound_to_csv: "{{ down_lbvservers | selectattr('vservername', 'in', csvserver_bindings.json.lbvserver_csvserver_binding[].vservername) | list }}"
+
+    - name: Save Down LBVservers Bound to CSV Servers as CSV
+      community.general.csv_content:
+        path: "down_lbvservers_bound_to_csv.csv"
+        content: "{{ down_lbvservers_bound_to_csv }}"
+      when: down_lbvservers_bound_to_csv | length > 0  # Save only if there are Down LBVservers bound to CSV
+
+    - name: Logout from ADM
+      uri:
+        url: "https://{{ adm_host }}/nitro/v1/config/logout"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Cookie: "{{ adm_login.cookies['NITRO_AUTH_TOKEN'] }}"
+        validate_certs: no
