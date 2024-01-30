@@ -4,15 +4,22 @@
   gather_facts: no
 
   tasks:
-    - name: Get LBVserver details
-      delegate_to: localhost
-      community.mios_module.netscaler_lb_vserver_facts:
-        nsip: "{{ netscaler_ip }}"
-        nitro_user: "{{ netscaler_username }}"
-        nitro_pass: "{{ netscaler_password }}"
-        name: "{{ lbvserver_name }}"
-      register: lbvserver_details
+    - name: Get LBVserver bindings
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_binding/{{ lbvserver_name }}"
+        method: GET
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        force_basic_auth: yes
+        validate_certs: no
+      register: lbvserver_binding_result
 
-    - name: Check if LBVserver is bound to CSVserver
+    - name: Print LBVserver to CSVserver binding status
       debug:
-        msg: "LBVserver {{ lbvserver_name }} is {{ 'bound' if lbvserver_details.lb_vservers[0].csvserver_names else 'not bound' }} to CSVserver"
+        msg: >
+          LBVserver {{ lbvserver_name }} is
+          {% if lbvserver_binding_result.status == 200 %}
+          bound to CSVserver
+          {% else %}
+          not bound to any CSVserver
+          {% endif %}
