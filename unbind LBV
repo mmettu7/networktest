@@ -1,19 +1,24 @@
 ---
-- name: Check LBVserver bound to CSVserver on Netscaler
+- name: Check LBVserver bindings on Netscaler
   hosts: netscaler
   gather_facts: no
-
+  vars:
+    netscaler_host: "your_netscaler_host"
+    netscaler_username: "your_username"
+    netscaler_password: "your_password"
   tasks:
-    - name: Check if LBVserver is bound to CSVserver
-      delegate_to: localhost
+    - name: Get LBVserver bindings
       uri:
-        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_binding/{{ lbvserver_name }}"
+        url: "http://{{ netscaler_host }}/nitro/v1/config/lbvserver_binding"
         method: GET
         user: "{{ netscaler_username }}"
         password: "{{ netscaler_password }}"
-        force_basic_auth: yes
+        body_format: json
+        status_code: 200
         validate_certs: no
-      register: lbvserver_binding_result
+      register: lbvserver_bindings
 
-    - debug:
-        msg: "{{ lbvserver_binding_result.json }}"
+    - name: Display LBVserver bindings
+      debug:
+        msg: "LBVserver {{ item.lbvserver_name }} is bound to CSVserver {{ item.csvserver_name }}"
+      loop: "{{ lbvserver_bindings.json.lbvserver_binding }}"
