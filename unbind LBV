@@ -1,0 +1,18 @@
+---
+- name: Check if LBVserver is bound to CSVserver on Netscaler
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Get Netscaler LBVserver Binding Facts
+      community.general.netscaler_lb_vserver_binding_facts:
+        nsip: "your_netscaler_ip"
+        nitro_user: "your_netscaler_username"
+        nitro_pass: "your_netscaler_password"
+        vservername: "your_lb_vserver_name"
+        servicetype: HTTP
+      register: lbvserver_binding_facts
+
+    - name: Display LBVserver Binding Facts
+      debug:
+        var: lbvserver_binding_facts.lb_vserver_bindings
