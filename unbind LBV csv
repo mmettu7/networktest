@@ -1,0 +1,44 @@
+---
+- name: Check and Save LBVserver Binding to CSVserver as CSV
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    netscaler_ip: "your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+    lb_vserver_name: "your_lb_vserver_name"
+    output_file: "/path/to/output/file.csv"
+
+  tasks:
+    - name: Get Netscaler LBVserver Binding
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_csvserver_binding/{{ lb_vserver_name }}"
+        method: GET
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
+      register: lbvserver_binding
+
+    - name: Convert LBVserver Binding to CSV
+      set_fact:
+        lbvserver_binding_csv: |
+          {% set lbvserver_binding_data = lbvserver_binding.json.lbvserver_csvserver_binding %}
+          {% set csv_content = "LBVserver Name,CSVserver Name\n" %}
+          {% for binding in lbvserver_binding_data %}
+          {% set csv_content = csv_content + binding.lbvserver + "," + binding.csvserver + "\n" %}
+          {% endfor %}
+          {{ csv_content }}
+
+    - name: Save LBVserver Binding to CSVserver as a File
+      ansible.builtin.copy:
+        content: "{{ lbvserver_binding_csv }}"
+        dest: "{{ output_file }}"
+      when: lbvserver_binding.status == 200
+
+    - name: Display LBVserver Binding
+      debug:
+        var: lbvserver_binding.json
