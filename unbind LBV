@@ -1,15 +1,34 @@
-- hosts: localhost
-  tasks:
-    - name: Gather facts about LBVserver bindings to CSVserver
-      delegate_to: localhost
-      community.network.netscaler_csvserver_lbvserver_binding_facts:
-        nsip: "{{ netscaler_ip }}"
-        nitro_user: "{{ nitro_user }}"
-        nitro_pass: "{{ nitro_pass }}"
-        lbvserver: "{{ lbvserver_name }}"
-      register: result
+---
+- name: Check and Save LBVserver Binding to CSVserver on Netscaler
+  hosts: localhost
+  gather_facts: false
 
-    - name: Display the CSVserver to which the LBVserver is bound
+  vars:
+    netscaler_ip: "your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+    lb_vserver_name: "your_lb_vserver_name"
+    output_file: "/path/to/output/file.json"
+
+  tasks:
+    - name: Get Netscaler LBVserver Binding
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_csvserver_binding/{{ lb_vserver_name }}"
+        method: GET
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
+      register: lbvserver_binding
+
+    - name: Save LBVserver Binding to CSVserver as a File
+      ansible.builtin.copy:
+        content: "{{ lbvserver_binding.json }}"
+        dest: "{{ output_file }}"
+      when: lbvserver_binding.status == 200
+
+    - name: Display LBVserver Binding
       debug:
-        msg: "The LBVserver {{ lbvserver_name }} is bound to the CSVserver {{ item.name }}"
-      loop: "{{ result.ansible_facts.netscaler_csvserver_lbvserver_binding }}"
+        var: lbvserver_binding.json
