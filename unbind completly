@@ -1,0 +1,43 @@
+---
+- name: Check and Unbind LBVserver from CSVserver on Netscaler
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    netscaler_ip: "your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+    lb_vserver_name: "your_lb_vserver_name"
+    output_file: "/path/to/output/file.txt"
+
+  tasks:
+    - name: Check if LBVserver is bound to CSVserver
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_csvserver_binding/{{ lb_vserver_name }}"
+        method: GET
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
+      register: lbvserver_binding
+
+    - name: Unbind LBVserver from CSVserver if bound
+      when: lbvserver_binding.status == 200
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver_csvserver_binding/{{ lb_vserver_name }}"
+        method: DELETE
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
+      register: unbind_result
+
+    - name: Save Unbind Result to File
+      ansible.builtin.copy:
+        content: "{{ unbind_result.json }}"
+        dest: "{{ output_file }}"
+      when: unbind_result is defined
