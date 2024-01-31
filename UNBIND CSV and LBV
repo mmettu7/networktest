@@ -3,15 +3,24 @@
   hosts: localhost
   gather_facts: no
 
+  vars:
+    netscaler_ip: "your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+    csvserver_name: "your_csvserver_name"
+    lbvserver_name: "your_lb_vserver_name"
+
   tasks:
     - name: Unbind CSVserver from LBVserver
-      community.general.netscaler_csvserver_binding:
-        nsip: "your_netscaler_ip"
-        nitro_user: "your_netscaler_username"
-        nitro_pass: "your_netscaler_password"
-        csvserver: "your_csvserver_name"
-        lbvserver: "your_lb_vserver_name"
-        state: "absent"
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/csvserver_lbvserver_binding/{{ csvserver_name }}"
+        method: DELETE
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
       register: unbind_result
 
     - name: Display Unbind Result
