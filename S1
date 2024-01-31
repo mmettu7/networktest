@@ -1,1 +1,3 @@
-
+- name: Extract specific value from JSON output
+  debug:
+    msg: "The value is {{ output_result.stdout | from_json | json_query('key') }}"
