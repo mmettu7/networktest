@@ -1,0 +1,19 @@
+---
+- name: Unbind CSVserver from LBVserver on Netscaler
+  hosts: localhost
+  gather_facts: no
+
+  tasks:
+    - name: Unbind CSVserver from LBVserver
+      community.general.netscaler_csvserver_binding:
+        nsip: "your_netscaler_ip"
+        nitro_user: "your_netscaler_username"
+        nitro_pass: "your_netscaler_password"
+        csvserver: "your_csvserver_name"
+        lbvserver: "your_lb_vserver_name"
+        state: "absent"
+      register: unbind_result
+
+    - name: Display Unbind Result
+      debug:
+        var: unbind_result
