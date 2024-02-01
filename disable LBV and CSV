@@ -1,0 +1,60 @@
+---
+- name: Unbind CSVserver and LBVserver and Disable them on Netscaler
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    netscaler_ip: "your_netscaler_ip"
+    netscaler_username: "your_netscaler_username"
+    netscaler_password: "your_netscaler_password"
+    csvserver_name: "your_csvserver_name"
+    lbvserver_name: "your_lb_vserver_name"
+
+  tasks:
+    - name: Unbind CSVserver from LBVserver
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/csvserver_lbvserver_binding/{{ csvserver_name }}"
+        method: DELETE
+        headers:
+          Accept: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        status_code: 200
+        validate_certs: no
+      register: unbind_result
+
+    - name: Disable CSVserver
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/csvserver/{{ csvserver_name }}"
+        method: PUT
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        body_format: json
+        body:
+          csvserver:
+            name: "{{ csvserver_name }}"
+            state: "DISABLED"
+        status_code: 200
+        validate_certs: no
+      when: unbind_result.status == 200
+
+    - name: Disable LBVserver
+      uri:
+        url: "http://{{ netscaler_ip }}/nitro/v1/config/lbvserver/{{ lbvserver_name }}"
+        method: PUT
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        user: "{{ netscaler_username }}"
+        password: "{{ netscaler_password }}"
+        body_format: json
+        body:
+          lbvserver:
+            name: "{{ lbvserver_name }}"
+            state: "DISABLED"
+        status_code: 200
+        validate_certs: no
+      when: unbind_result.status == 200
