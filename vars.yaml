@@ -1,0 +1,23 @@
+# netscaler_vars.yml
+
+netscaler_nsip: "your_netscaler_nsip"
+netscaler_nitro_user: "your_netscaler_nitro_user"
+netscaler_nitro_pass: "your_netscaler_nitro_pass"
+
+csv_servers:
+  - name: "csv1"
+    servicetype: "HTTP"
+  - name: "csv2"
+    servicetype: "SSL"
+
+lbv_servers:
+  - name: "lbv1"
+    servicetype: "HTTP"
+  - name: "lbv2"
+    servicetype: "SSL"
+
+service_groups:
+  - name: "sg1"
+    servicetype: "HTTP"
+  - name: "sg2"
+    servicetype: "SSL"
