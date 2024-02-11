@@ -1,29 +1,6 @@
-# deploy_netscaler.yml
-
----
-- name: Deploy and Bind Netscaler Objects
-  hosts: netscaler
-  gather_facts: no
-  vars_files:
-    - netscaler_vars.yml
-
-  tasks:
-    - name: Create CSV
+- name: Create LBV
       delegate_to: localhost
-      netscaler_cs_vserver:
-        nsip: "{{ netscaler_nsip }}"
-        nitro_user: "{{ netscaler_nitro_user }}"
-        nitro_pass: "{{ netscaler_nitro_pass }}"
-        ssl_certkey: "certkey"
-        name: "{{ item.name }}"
-        servicetype: "{{ item.servicetype }}"
-        state: present
-      loop: "{{ csv_servers }}"
-      register: csv_results
-
-    - name: Create LBV
-      delegate_to: localhost
-      netscaler_lb_vserver:
+      netscaler.adc.lbvserver:
         nsip: "{{ netscaler_nsip }}"
         nitro_user: "{{ netscaler_nitro_user }}"
         nitro_pass: "{{ netscaler_nitro_pass }}"
@@ -33,9 +10,28 @@
       loop: "{{ lbv_servers }}"
       register: lbv_results
 
+
+    - name: Bind CSV to LBV
+      delegate_to: localhost
+      netscaler_lb_vserver_cs_vserver_binding:
+        nsip: "{{ netscaler_nsip }}"
+        nitro_user: "{{ netscaler_nitro_user }}"
+        nitro_pass: "{{ netscaler_nitro_pass }}"
+        lbvserver: "{{ item.lbv_name }}"
+        csvserver: "{{ item.csv_name }}"
+        state: present
+      loop: "{{ lbv_results.results }}"
+      loop_control:
+        loop_var: item
+      with_together:
+        - "{{ lbv_results.results }}"
+        - "{{ csv_results.results }}"
+      register: lbv_csv_binding_results
+
+
     - name: Create Service Groups
       delegate_to: localhost
-      netscaler_servicegroup:
+      netscaler.adc.servicegroup:
         nsip: "{{ netscaler_nsip }}"
         nitro_user: "{{ netscaler_nitro_user }}"
         nitro_pass: "{{ netscaler_nitro_pass }}"
@@ -78,56 +74,3 @@
         - "{{ lbv_results.results }}"
         - "{{ sg_results.results }}"
       register: lbv_sg_binding_results
-
----
-- name: Deploy and Bind Netscaler Objects
-  hosts: netscaler
-  gather_facts: no
-  tasks:
-    - name: Create CSV
-      delegate_to: localhost
-      netscaler_cs_vserver:
-        nsip: "{{ netscaler_nsip }}"
-        nitro_user: "{{ netscaler_nitro_user }}"
-        nitro_pass: "{{ netscaler_nitro_pass }}"
-        ssl_certkey: "certkey"
-        name: "{{ item.name }}"
-        servicetype: "{{ item.servicetype }}"
-        state: present
-      loop:
-        - { name: "csv1", servicetype: "HTTP" }
-        - { name: "csv2", servicetype: "SSL" }
-      register: csv_results
-
-    - name: Create LBV
-      delegate_to: localhost
-      netscaler_lb_vserver:
-        nsip: "{{ netscaler_nsip }}"
-        nitro_user: "{{ netscaler_nitro_user }}"
-        nitro_pass: "{{ netscaler_nitro_pass }}"
-        name: "{{ item.name }}"
-        servicetype: "{{ item.servicetype }}"
-        state: present
-      loop:
-        - { name: "lbv1", servicetype: "HTTP" }
-        - { name: "lbv2", servicetype: "SSL" }
-      register: lbv_results
-
-    - name: Bind CSV to LBV
-      delegate_to: localhost
-      netscaler_lb_vserver_cs_vserver_binding:
-        nsip: "{{ netscaler_nsip }}"
-        nitro_user: "{{ netscaler_nitro_user }}"
-        nitro_pass: "{{ netscaler_nitro_pass }}"
-        lbvserver: "{{ item.lbv_name }}"
-        csvserver: "{{ item.csv_name }}"
-        state: present
-      loop: "{{ lbv_results.results }}"
-      loop_control:
-        loop_var: item
-      with_together:
-        - "{{ lbv_results.results }}"
-        - "{{ csv_results.results }}"
-      register: lbv_csv_binding_results
-
-
