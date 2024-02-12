@@ -1,0 +1,24 @@
+---
+- name: Configure Netscaler Service Group
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Create service group
+      community.network.netscaler_servicegroup:
+        nsip: "netscaler.example.com"
+        nitro_user: "admin"
+        nitro_pass: "password"
+        state: present
+        name: "my_service_group"
+        servicetype: HTTP
+        comment: "My service group for web servers"
+        servers:
+          - name: "server1"
+            ip: "10.0.0.1"
+            port: 80
+          - name: "server2"
+            ip: "10.0.0.2"
+            port: 80
+        # Add other parameters as needed (e.g., health monitors, load balancing settings)
+
+    # You can add more tasks here for additional configurations or bindings
