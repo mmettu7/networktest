@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Net::SSH::Perl;
+
+# Configuration for SSH connection
+my $hostname = 'your_remote_server_hostname';
+my $username = 'your_username';
+my $password = 'your_password';
+
+# Command to check for the existence of the .exe file
+my $exe_file = 'your_exe_file.exe';
+my $command = "ls $exe_file";
+
+# Connect to the remote server via SSH
+my $ssh = Net::SSH::Perl->new($hostname);
+$ssh->login($username, $password);
+
+# Execute the command to check for the existence of the .exe file
+my ($stdout, $stderr, $exit) = $ssh->cmd($command);
+
+# Check the result
+if ($exit == 0) {
+    print "$exe_file exists on the remote server.\n";
+} else {
+    print "$exe_file does not exist on the remote server.\n";
+}
