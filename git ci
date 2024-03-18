@@ -1,0 +1,33 @@
+stages:
+  - disable_vip
+  - schedule_delete
+
+variables:
+  DELETE_DELAY_DAYS: 14
+  DELETE_TIME: "02:00" # Default time for deletion (2:00 AM)
+
+# Job to disable Netscaler VIP
+disable_vip:
+  stage: disable_vip
+  script:
+    - echo "Disabling Netscaler VIP..."
+    # Add commands to disable the VIP
+  when: manual
+  allow_failure: true
+  only:
+    - master
+
+# Job to schedule VIP deletion
+schedule_delete:
+  stage: schedule_delete
+  script:
+    - echo "Scheduling VIP deletion..."
+  when: manual
+  only:
+    - schedules
+  variables:
+    DELETE_TIME: "${DELETE_TIME}"
+  environment:
+    name: delete_environment
+  dependencies:
+    - disable_vip
